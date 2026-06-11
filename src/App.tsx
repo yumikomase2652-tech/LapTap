@@ -20,7 +20,6 @@ type StoredData = {
 
 const STORAGE_KEY = 'laptap-data-v1'
 const LAP_LOCK_MS = 300
-const DOUBLE_TAP_MS = 280
 
 function formatTime(ms: number) {
   const safeMs = Math.max(0, ms)
@@ -54,7 +53,6 @@ function App() {
   const elapsedRef = useRef(elapsed)
   const lapsRef = useRef(laps)
   const runningRef = useRef(false)
-  const resetWindowStartedAtRef = useRef(0)
   const lapListRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -82,7 +80,6 @@ function App() {
 
   const reset = useCallback(() => {
     runningRef.current = false
-    resetWindowStartedAtRef.current = 0
     elapsedRef.current = 0
     lapsRef.current = []
     elapsedBeforeStartRef.current = 0
@@ -126,20 +123,6 @@ function App() {
   const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return
 
-    const now = performance.now()
-    const isResetDoubleTap = (
-      runningRef.current
-      && resetWindowStartedAtRef.current > 0
-      && now - resetWindowStartedAtRef.current <= DOUBLE_TAP_MS
-    )
-
-    if (isResetDoubleTap) {
-      reset()
-      return
-    }
-
-    resetWindowStartedAtRef.current = 0
-
     if (runningRef.current) {
       event.preventDefault()
       const zone = event.clientY < window.innerHeight / 2 ? 'stop' : 'lap'
@@ -151,9 +134,14 @@ function App() {
       return
     }
 
-    if (elapsedRef.current > 0) resetWindowStartedAtRef.current = now
     start()
-  }, [addLap, reset, start, stop])
+  }, [addLap, start, stop])
+
+  const handleResetPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    reset()
+  }
 
   useEffect(() => {
     if (!isRunning) return
@@ -181,6 +169,17 @@ function App() {
       className={`app ${isRunning ? 'is-running' : 'is-stopped'}`}
       onPointerDown={handlePointerDown}
     >
+      {!isRunning && (
+        <button
+          className="reset-button"
+          type="button"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={handleResetPointerDown}
+        >
+          RESET
+        </button>
+      )}
+
       <div
         aria-hidden="true"
         className="tap-zone tap-zone--top"
@@ -199,7 +198,6 @@ function App() {
         {!isRunning && (
           <div className="start-prompt">
             TAP TO START
-            <small>DOUBLE TAP TO RESET</small>
           </div>
         )}
 
