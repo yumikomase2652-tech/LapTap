@@ -21,7 +21,6 @@ type StoredData = {
 const STORAGE_KEY = 'laptap-data-v1'
 const LAP_LOCK_MS = 300
 const DOUBLE_TAP_MS = 280
-const SCROLL_THRESHOLD_PX = 8
 
 function formatTime(ms: number) {
   const safeMs = Math.max(0, ms)
@@ -55,10 +54,8 @@ function App() {
   const elapsedRef = useRef(elapsed)
   const lapsRef = useRef(laps)
   const runningRef = useRef(false)
-  const lastStoppedTapRef = useRef(0)
-  const startTimerRef = useRef<number | null>(null)
+  const resetWindowStartedAtRef = useRef(0)
   const lapListRef = useRef<HTMLDivElement | null>(null)
-  const historyPointerRef = useRef<{ id: number; startY: number; moved: boolean } | null>(null)
 
   useEffect(() => {
     elapsedRef.current = elapsed
@@ -84,9 +81,12 @@ function App() {
   }, [])
 
   const reset = useCallback(() => {
+    runningRef.current = false
+    resetWindowStartedAtRef.current = 0
     elapsedRef.current = 0
     lapsRef.current = []
     elapsedBeforeStartRef.current = 0
+    setIsRunning(false)
     setElapsed(0)
     setLaps([])
     persist(null)
@@ -123,8 +123,26 @@ function App() {
     setLaps(nextLaps)
   }, [])
 
-  const handleTap = useCallback((zone: 'lap' | 'stop') => {
+  const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
+    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return
+
+    const now = performance.now()
+    const isResetDoubleTap = (
+      runningRef.current
+      && resetWindowStartedAtRef.current > 0
+      && now - resetWindowStartedAtRef.current <= DOUBLE_TAP_MS
+    )
+
+    if (isResetDoubleTap) {
+      reset()
+      return
+    }
+
+    resetWindowStartedAtRef.current = 0
+
     if (runningRef.current) {
+      event.preventDefault()
+      const zone = event.clientY < window.innerHeight / 2 ? 'stop' : 'lap'
       if (zone === 'stop') {
         stop()
       } else if (performance.now() - startAtRef.current >= LAP_LOCK_MS) {
@@ -133,23 +151,8 @@ function App() {
       return
     }
 
-    const now = performance.now()
-    const isDoubleTap = now - lastStoppedTapRef.current <= DOUBLE_TAP_MS
-    lastStoppedTapRef.current = now
-
-    if (isDoubleTap) {
-      if (startTimerRef.current) window.clearTimeout(startTimerRef.current)
-      startTimerRef.current = null
-      lastStoppedTapRef.current = 0
-      reset()
-      return
-    }
-
-    startTimerRef.current = window.setTimeout(() => {
-      startTimerRef.current = null
-      lastStoppedTapRef.current = 0
-      start()
-    }, DOUBLE_TAP_MS)
+    if (elapsedRef.current > 0) resetWindowStartedAtRef.current = now
+    start()
   }, [addLap, reset, start, stop])
 
   useEffect(() => {
@@ -169,44 +172,21 @@ function App() {
     if (isRunning && lapListRef.current) lapListRef.current.scrollTop = 0
   }, [isRunning, laps.length])
 
-  useEffect(() => () => {
-    if (startTimerRef.current) window.clearTimeout(startTimerRef.current)
-  }, [])
-
-  const handleHistoryPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    historyPointerRef.current = {
-      id: event.pointerId,
-      startY: event.clientY,
-      moved: false,
-    }
-  }
-
-  const handleHistoryPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const pointer = historyPointerRef.current
-    if (pointer?.id === event.pointerId && Math.abs(event.clientY - pointer.startY) > SCROLL_THRESHOLD_PX) {
-      pointer.moved = true
-    }
-  }
-
-  const handleHistoryPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const pointer = historyPointerRef.current
-    historyPointerRef.current = null
-    if (pointer?.id === event.pointerId && !pointer.moved) handleTap('lap')
-  }
-
   const latestLap = laps.at(-1)
   const completedLaps = [...laps].reverse()
 
   return (
-    <main className={`app ${isRunning ? 'is-running' : 'is-stopped'}`}>
-      <button
-        aria-label={isRunning ? 'STOP' : 'TAP TO START'}
+    <main
+      aria-label={isRunning ? 'LapTap running stopwatch' : 'Tap anywhere to start LapTap'}
+      className={`app ${isRunning ? 'is-running' : 'is-stopped'}`}
+      onPointerDown={handlePointerDown}
+    >
+      <div
+        aria-hidden="true"
         className="tap-zone tap-zone--top"
-        type="button"
-        onPointerUp={() => handleTap('stop')}
       >
         {isRunning && <span className="zone-label">STOP</span>}
-      </button>
+      </div>
 
       <section className="display" aria-live="polite">
         <div className="brand-row">
@@ -233,10 +213,6 @@ function App() {
           <div
             className="lap-list"
             ref={lapListRef}
-            onPointerCancel={() => { historyPointerRef.current = null }}
-            onPointerDown={handleHistoryPointerDown}
-            onPointerMove={handleHistoryPointerMove}
-            onPointerUp={handleHistoryPointerUp}
           >
             {completedLaps.length === 0 ? (
               <div className="empty">
@@ -254,14 +230,12 @@ function App() {
         </div>
       </section>
 
-      <button
-        aria-label={isRunning ? 'LAP' : 'TAP TO START'}
+      <div
+        aria-hidden="true"
         className="tap-zone tap-zone--bottom"
-        type="button"
-        onPointerUp={() => handleTap('lap')}
       >
         {isRunning && <span className="zone-label">LAP</span>}
-      </button>
+      </div>
     </main>
   )
 }

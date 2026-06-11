@@ -18,10 +18,11 @@ body,
   margin: 0;
   overflow: hidden;
   background: #000;
-}
-
-button {
-  font: inherit;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .app {
@@ -34,7 +35,14 @@ button {
   overflow: hidden;
   touch-action: manipulation;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
   background: #000;
+}
+
+.app.is-running {
+  touch-action: none;
 }
 
 .app::before {
@@ -58,13 +66,7 @@ button {
   border: 0;
   color: #fff;
   background: transparent;
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.tap-zone:active {
-  background: #0c0c0c;
+  pointer-events: none;
 }
 
 .tap-zone--top {
