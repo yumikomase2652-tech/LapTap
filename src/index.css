@@ -169,6 +169,15 @@ body,
 .lap-panel {
   height: min(25vh, 210px);
   overflow: visible;
+  pointer-events: none;
+}
+
+.is-stopped .lap-panel {
+  pointer-events: auto;
+}
+
+.is-running .lap-panel {
+  pointer-events: none;
 }
 
 .lap-panel__head {

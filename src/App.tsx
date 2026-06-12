@@ -203,7 +203,11 @@ function App() {
 
         <div className="time">{formatTime(elapsed)}</div>
 
-        <div className="lap-panel">
+        <div
+          className="lap-panel"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
           <div className="lap-panel__head">
             <span>{latestLap ? `${laps.length} LAPS` : 'LAP HISTORY'}</span>
             {latestLap && <strong>LAST {formatTime(latestLap.split)}</strong>}
