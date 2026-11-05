@@ -1,5 +1,9 @@
 # LapTap
 
+**陸上練習の計測を、画面の大きなタップ領域で操作するストップウォッチPWA。**
+
+[アプリを開く](https://lap-tap.vercel.app) · [日本語で使い方を見る](#日本語ガイド)
+
 LapTap is a simple Progressive Web App stopwatch designed for track and field training. It prioritizes fast, reliable operation without requiring the athlete or timekeeper to look closely at the screen.
 
 The entire screen acts as a large touch target, making it easy to start, stop, and record laps with one hand.
@@ -68,8 +72,8 @@ The newest lap is shown at the top of the list. While the stopwatch is running, 
 ### Setup
 
 ```bash
-git clone <repository-url>
-cd laptap
+git clone https://github.com/yumikomase2652-tech/LapTap.git
+cd LapTap
 npm install
 npm run dev
 ```
@@ -113,15 +117,22 @@ LapTap uses `vite-plugin-pwa` to generate its web app manifest and service worke
 
 For the best experience, install LapTap on a mobile device and launch it from the home screen.
 
-## Screenshots
+## 日本語ガイド
 
-> Screenshot placeholder: stopped state and lap history
+### 解決したい課題
 
-<!-- Add screenshot: docs/screenshots/laptap-stopped.png -->
+陸上練習で走者を見ながら計測するとき、細かいボタンを探す負担を減らすためのUIです。停止中は画面をタップして開始し、計測中は上半分で停止、下半分でラップを記録します。
 
-> Screenshot placeholder: running state with STOP and LAP zones
+### 実装の見どころ
 
-<!-- Add screenshot: docs/screenshots/laptap-running.png -->
+- `performance.now()`で経過時間を計算し、`requestAnimationFrame`で表示を更新。
+- 計測中の値をrefで保持し、タップ時のラップ計算に利用。
+- 開始直後300msのラップ入力を無効にし、誤操作を抑制。
+- 停止後の結果をlocalStorageに保存。過去セッションの専用閲覧画面は未実装。
+
+### 現在の範囲
+
+個人用の計測ツールです。CSV出力、クラウド同期、複数走者の同時計測は提供していません。オフライン対応はPWA構成によるもので、端末・ブラウザごとの実機検証結果はまだ掲載していません。
 
 ## Planned Improvements
 
